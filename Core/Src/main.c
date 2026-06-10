@@ -65,10 +65,20 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  uint32_t delay_value = 1000;
+  float reduction_factor = 0.95f;
   while (1)
   {
     /* USER CODE END WHILE */
+    HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+    if (delay_value > 50) {
+      delay_value =(delay_value * reduction_factor);
+    }
+    else {
+      delay_value = 1000;
+    }
 
+    HAL_Delay(delay_value);
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
