@@ -19,22 +19,51 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
-#include <stdio.h>
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
 
+/* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
 UART_HandleTypeDef huart2;
+
+/* USER CODE BEGIN PV */
+
+/* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
+/* USER CODE BEGIN PFP */
+
+/* USER CODE END PFP */
+
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
+
+/* USER CODE END 0 */
 
 /**
   * @brief  The application entry point.
   * @retval int
   */
-int main(void)
-{
-
+int main(void) {
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -57,33 +86,103 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+  uint32_t last9 = 0;
+  uint32_t last18 = 0;
+  uint32_t last37 = 0;
+  uint32_t last75 = 0;
+  uint32_t last125 = 0;
+  uint32_t last250 = 0;
+  uint32_t last500 = 0;
+  uint32_t last1000 = 0;
 
+  GPIO_PinState last_button_state = GPIO_PIN_SET;
+  uint32_t last_debounce_time = 0;
   /* USER CODE END 2 */
 
   /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-  uint32_t delay_value = 1000;
-  float reduction_factor = 0.95f;
   while (1)
   {
-    /* USER CODE END WHILE */
-    HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-    if (delay_value > 50) {
-      delay_value =(delay_value * reduction_factor);
-    }
-    else {
-      delay_value = 1000;
+    GPIO_PinState current_button_state =
+        HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
+
+    if (last_button_state == GPIO_PIN_SET &&
+        current_button_state == GPIO_PIN_RESET)
+    {
+      uint32_t now = HAL_GetTick();
+
+      if (now - last_debounce_time > 50)
+      {
+        last_debounce_time = now;
+        HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+      }
     }
 
-    HAL_Delay(delay_value);
-    /* USER CODE BEGIN 3 */
+    last_button_state = current_button_state;
+    // A10, B5,  B4,  B8, A9, B6, A7, A8
+    // 1k 500 250 125 75 37 18 9
+    /* USER CODE BEGIN WHILE */
+    uint32_t now = HAL_GetTick();
+
+    if (now - last1000 >= 128000) {
+      last1000 = now;
+      HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_10);
+    }
+
+    if (now - last500 >= 64000) {
+      last500 = now;
+      HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_5);
+    }
+
+    if (now - last250 >= 32000) {
+      last250 = now;
+      HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_4);
+    }
+
+    if (now - last125 >= 16000) {
+      last125 = now;
+      HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_8);
+    }
+
+    if (now - last75 >= 8000) {
+      last75 = now;
+      HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_9);
+    }
+
+    if (now - last37 >= 4000) {
+      last37 = now;
+      HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_6);
+    }
+
+    if (now - last18 >= 2000) {
+      last18 = now;
+      HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_7);
+    }
+
+    if (now - last9 >= 1000) {
+      last9 = now;
+      HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_8);
+    }
+    /* USER CODE END WHILE */
   }
+  /* USER CODE BEGIN 3 */
+
+  // PA10 ->  D2   8k
+  // PB5  ->  D4   4k
+  // PB4  ->  D5   2k
+  // PA8  ->  D7   1k
+  // PA9  ->  D8   500
+  // PB6  ->  D10  250
+  // PA7  ->  D11  125
+  // PB8  ->  D15  75
+
+
+
+  // 10, 5,  4,  8, 9, 6, 7, 8
+  // 1k 500 250 125 75 37 18 9
   /* USER CODE END 3 */
 }
-
 /**
   * @brief System Clock Configuration
   * @retval None
@@ -183,7 +282,11 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, LD2_Pin|GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9
+                          |GPIO_PIN_10, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_8, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
@@ -191,15 +294,32 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : LD2_Pin */
-  GPIO_InitStruct.Pin = LD2_Pin;
+  /*Configure GPIO pins : LD2_Pin PA7 PA8 PA9
+                           PA10 */
+  GPIO_InitStruct.Pin = LD2_Pin|GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9
+                          |GPIO_PIN_10;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LD2_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PB4 PB5 PB6 PB8 */
+  GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_8;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
-
+  // PA7  ->  D11
+  // PA8  ->  D7
+  // PA9  ->  D8
+  // PA10 ->  D2
+  //
+  // PB8  ->  D15
+  // PB6  ->  D10
+  // PB5  ->  D4
+  // PB4  ->  D5
   /* USER CODE END MX_GPIO_Init_2 */
 }
 
@@ -214,11 +334,11 @@ static void MX_GPIO_Init(void)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-  __disable_irq();
-  while (1)
-  {
-  }
+    /* User can add his own implementation to report the HAL error return state */
+    __disable_irq();
+    while (1)
+    {
+    }
   /* USER CODE END Error_Handler_Debug */
 }
 #ifdef USE_FULL_ASSERT
@@ -232,8 +352,8 @@ void Error_Handler(void)
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+    /* User can add his own implementation to report the file name and line number,
+       ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
